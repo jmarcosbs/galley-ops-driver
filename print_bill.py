@@ -85,7 +85,6 @@ def build_bill_payload(order_data):
     company_cnpj = order_data.get("company_cnpj", "")
     company_ie = order_data.get("company_ie", "")
     access_key = order_data.get("access_key", "")
-    qr_number = order_data.get("qr_number", "")
     qr_url = order_data.get("qr_url", "https://sat.ef.sc.gov.br/nfce/consulta")
     nfce_number = order_data.get("nfce_number", "")
     nfce_series = order_data.get("nfce_series", "")
@@ -107,8 +106,10 @@ def build_bill_payload(order_data):
     content += align_left()
     content += render_items(order_dishes)
     
-    content += text_small(f"Valor total da conta: R$ {subtotal:0.2f}\n")
-    content += text_small(f"Servico: R$ {service_fee:0.2f}\n")
+    content += b"\n"
+    
+    content += text_medium(f"Total: R$ {subtotal:0.2f}\n")
+    content += text_medium(f"Serviço: R$ {service_fee:0.2f}\n")
     content += text_big(f"Valor a Pagar: R$ {amount_due:0.2f}\n")
 
     content += align_center()
@@ -116,8 +117,6 @@ def build_bill_payload(order_data):
     content += text_smallest(f"{qr_url}\n")
     if access_key:
         content += text_smallest(f"{access_key}\n")
-    if qr_number:
-        content += text_smallest(f"QR Code: {qr_number}\n")
     content += text_smallest("CONSUMIDOR NAO IDENTIFICADO\n\n")
 
     content += text_smallest(
@@ -263,9 +262,10 @@ def render_items(order_dishes: List[Dict[str, Any]]) -> bytes:
         unit_price = order_dish.get("unit_price") or dish.get("price") or 0
         line_total = float(amount) * float(unit_price)
 
-        left = f"{dish_name} / {amount} UN x R$ {float(unit_price):0.2f}"
+        left = f"{dish_name} - {amount} UN x R$ {float(unit_price):0.2f}"
         # quebra de linha normal no final
-        buffer += text_small(f"{left}    R$ {line_total:0.2f}\n")
+        right = f"R$ {line_total:0.2f}"
+        buffer += render_item_line(left, right)
 
     return buffer
 
@@ -321,3 +321,22 @@ def format_text(text: str, other: str) -> str:
     # mantém quebras de linha e remove acentos
     # (unidecode não remove '\n', então é safe)
     return unidecode(text)
+
+
+def render_item_line(left: str, right: str, width: int = 48) -> bytes:
+    """
+    Monta uma linha com o texto da esquerda e o valor à direita.
+    Exemplo:
+    "Coca-Cola 2un x 5,00              R$ 10,00"
+    """
+    left = format_text(left, "")
+    right = format_text(right, "")
+
+    # calcula quantidade de espaços necessários
+    spaces = width - len(left) - len(right)
+
+    if spaces < 1:
+        spaces = 1  # evita colar textos quando ultrapassa
+
+    line = left + (" " * spaces) + right + "\n"
+    return text_small(line)
