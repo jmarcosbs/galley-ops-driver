@@ -1,0 +1,83 @@
+{
+  "info": {
+    "_postman_id": "a1b2c3d4-e5f6-4789-b012-3456789abcd0",
+    "name": "Marinheiros Printer API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Endpoints de impressao de comandas"
+  },
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/health",
+          "host": ["{{base_url}}"],
+          "path": ["health"]
+        }
+      }
+    },
+    {
+      "name": "Print Bar",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id\": 1,\n  \"date_time\": \"2024-06-14T18:30:00.000Z\",\n  \"table_number\": 12,\n  \"order_dishes\": [\n    {\n      \"dish\": {\"dish_name\": \"Suco de Laranja\", \"department\": \"copa\"},\n      \"amount\": 1,\n      \"dish_note\": \"sem acucar\"\n    },\n    {\n      \"dish\": {\"dish_name\": \"Pizza Margherita\", \"department\": \"cozinha\"},\n      \"amount\": 1,\n      \"dish_note\": null\n    }\n  ],\n  \"order_note\": \"\",\n  \"waiter\": \"Joao\",\n  \"is_outside\": false\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/print-bar",
+          "host": ["{{base_url}}"],
+          "path": ["print-bar"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Print Kitchen",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id\": 2,\n  \"date_time\": \"2024-06-14T19:00:00.000Z\",\n  \"table_number\": 5,\n  \"order_dishes\": [\n    {\n      \"dish\": {\"dish_name\": \"Spaghetti\", \"department\": \"cozinha\"},\n      \"amount\": 2,\n      \"dish_note\": null\n    },\n    {\n      \"dish\": {\"dish_name\": \"Suco de Laranja\", \"department\": \"copa\"},\n      \"amount\": 1,\n      \"dish_note\": \"com gelo\"\n    }\n  ],\n  \"order_note\": \"\",\n  \"waiter\": \"Maria\",\n  \"is_outside\": true\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/print-kitchen",
+          "host": ["{{base_url}}"],
+          "path": ["print-kitchen"]
+        }
+      },
+      "response": []
+    }
+  ],
+  "event": [],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000"
+    }
+  ]
+}
