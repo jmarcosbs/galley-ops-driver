@@ -8,7 +8,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # dish_name da impressora (substitua com o dish_name da sua impressora ESC/P)
-default_printer = os.getenv('BAR_PRINTER')
+default_printer = os.getenv('BILL_PRINTER')
+
+CUT = b"\x1B\x69"
 
 class PrinterOfflineException(APIException):
     status_code = 503
@@ -26,7 +28,7 @@ def is_printer_offline_all():
     except:
         return True
 
-def print_order_bar(order_data):
+def print_order_bill(order_data):
     
     # Verifica se a impressora está online
     if is_printer_offline_all():
@@ -59,8 +61,10 @@ def print_order_bar(order_data):
             win32print.WritePrinter(hPrinter, cabecalho_pedido(order_id, date_time, waiter, "Copa"))
             imprimir_copa(hPrinter, order_dishes)
             win32print.WritePrinter(hPrinter, rodape_pedido(order_note, table_number, is_outside))
+            
 
         # Finalizar o trabalho de impressão
+        win32print.WritePrinter(hPrinter, CUT)
         win32print.EndPagePrinter(hPrinter)
         win32print.EndDocPrinter(hPrinter)
         win32print.ClosePrinter(hPrinter)

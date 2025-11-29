@@ -6,6 +6,7 @@ from rest_framework.exceptions import APIException
 
 import print_bar
 import print_kitchen
+import print_bill
 
 
 class Dish(BaseModel):
@@ -43,7 +44,7 @@ def _handle_print_error(exc: Exception) -> None:
 @app.post("/print-bar", status_code=202)
 async def print_bar_endpoint(order: Order):
     try:
-        print_bar.print_order_all(order.model_dump())
+        print_bar.print_order_bar(order.model_dump())
     except Exception as exc:
         _handle_print_error(exc)
     return {"message": "Sent to bar printer"}
@@ -56,6 +57,15 @@ async def print_kitchen_endpoint(order: Order):
     except Exception as exc:
         _handle_print_error(exc)
     return {"message": "Sent to kitchen printer"}
+
+
+@app.post("/print-bill", status_code=202)
+async def print_bar_endpoint(order: Order):
+    try:
+        print_bill.print_order_bill(order.model_dump())
+    except Exception as exc:
+        _handle_print_error(exc)
+    return {"message": "Sent to bar printer"}
 
 
 @app.get("/health")
