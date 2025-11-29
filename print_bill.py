@@ -283,23 +283,32 @@ def align_center():
 
 
 def text_smallest(text: str) -> bytes:
-    # modo normal
-    return b"\x1B\x4D\x01" + format_text(text, "").encode("utf-8") + b"\x1B\x4D\x00"
+    return (
+        b"\x1B\x21\x00" +   # reset tamanho
+        b"\x1B\x4D\x01" +   # Font B (menor)
+        format_text(text, "").encode("utf-8")
+    )
 
 def text_small(text: str) -> bytes:
-    # modo normal
-    return align_current_size(b"\x1B\x4D\x00", text)
-
+    return (
+        b"\x1B\x21\x00" +   # tamanho normal
+        b"\x1B\x4D\x00" +   # Font A
+        format_text(text, "").encode("utf-8")
+    )
 
 def text_medium(text: str) -> bytes:
-    # altura dobrada
-    return align_current_size(b"\x1B\x21\x20", text)
-
-
+    return (
+        b"\x1B\x21\x20" +   # altura dobrada
+        b"\x1B\x4D\x00" +   # Font A
+        format_text(text, "").encode("utf-8")
+    )
+    
 def text_big(text: str) -> bytes:
-    # altura + largura dobradas
-    return align_current_size(b"\x1B\x21\x30", text)
-
+    return (
+        b"\x1B\x21\x30" +   # altura+largo dobrado
+        b"\x1B\x4D\x00" +   # Font A
+        format_text(text, "").encode("utf-8")
+    )
 
 def align_current_size(size_cmd: bytes, text: str) -> bytes:
     """
