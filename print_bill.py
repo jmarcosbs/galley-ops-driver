@@ -8,26 +8,26 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# dish_name da impressora (substitua com o dish_name da sua impressora ESC/P)
 default_printer = os.getenv('BILL_PRINTER')
 
-CUT = b"\x1B\x69"
+CUT = b"\x1B\x69"  # corte total Epson ESC/POS
+
 
 class PrinterOfflineException(APIException):
     status_code = 503
     default_detail = "A impressora está offline ou não está acessível."
     default_code = "printer_offline"
-    
+
+
 def is_printer_offline_all():
     try:
         hPrinter = win32print.OpenPrinter(default_printer)
-        # Nível 2 retorna um dicionário com informações detalhadas sobre a impressora
-        printer_info = win32print.GetPrinter(hPrinter, 2)
-        # print(printer_info)
+        win32print.GetPrinter(hPrinter, 2)
         win32print.ClosePrinter(hPrinter)
         return False
     except:
         return True
+
 
 def print_order_bill(order_data):
     """
@@ -44,11 +44,17 @@ def print_order_bill(order_data):
         win32print.StartDocPrinter(hPrinter, 1, (payload["title"], None, "RAW"))
         win32print.StartPagePrinter(hPrinter)
 
+        # ---- LOGO (centralizado) ----
         logo_bytes = build_logo()
         if logo_bytes:
+            # centralizar imagem
+            win32print.WritePrinter(hPrinter, align_center())
             win32print.WritePrinter(hPrinter, logo_bytes)
 
+        # ---- CONTEÚDO DA CONTA ----
         win32print.WritePrinter(hPrinter, payload["content"])
+
+        # comando de corte
         win32print.WritePrinter(hPrinter, CUT)
 
         win32print.EndPagePrinter(hPrinter)
@@ -89,49 +95,55 @@ def build_bill_payload(order_data):
     md5_hash = order_data.get("md5", "")
 
     content = b""
-    content += reset_and_center()
-    content += text_small(company_name + "\\n")
-    content += text_small(company_address + "\\n")
-    content += text_small(f"CNPJ: {company_cnpj}  IE: {company_ie}\\n")
-    content += text_small("Documento Auxiliar da Nota Fiscal de Consumidor Eletronica\\n\\n")
 
-    content += text_medium(f"# Conta {order_id}\\n")
-    content += text_small(f"Data: {date_time}\\n")
-    content += text_small(f"Mesa: {'R' + str(table_number) if is_outside else table_number}\\n")
-    content += text_small(f"Atendente: {waiter}\\n\\n")
+    # resetar impressora e centralizar
+    content += reset_and_center()
+    # ⚠️ AGORA usando "\n" de verdade, não "\\n"
+    content += text_smallest(company_name + "\n")
+    content += text_smallest(company_address + "\n")
+    content += text_smallest(f"CNPJ: {company_cnpj}  IE: {company_ie}\n")
+    content += text_smallest("Documento Auxiliar da Nota Fiscal de Consumidor Eletronica\n\n")
 
     content += align_left()
     content += render_items(order_dishes)
-
-    content += text_medium("--------------------\\n")
-    content += text_medium(f"Valor total da conta: R$ {subtotal:0.2f}\\n")
-    content += text_medium(f"Servico: R$ {service_fee:0.2f}\\n")
-    content += text_big(f"Valor a Pagar: R$ {amount_due:0.2f}\\n")
+    
+    content += text_small(f"Valor total da conta: R$ {subtotal:0.2f}\n")
+    content += text_small(f"Servico: R$ {service_fee:0.2f}\n")
+    content += text_big(f"Valor a Pagar: R$ {amount_due:0.2f}\n")
 
     content += align_center()
-    content += text_small("\\nConsulte pela chave de acesso em\\n")
-    content += text_small(f"{qr_url}\\n")
+    content += text_smallest("\nConsulte pela chave de acesso em\n")
+    content += text_smallest(f"{qr_url}\n")
     if access_key:
-        content += text_small(f"{access_key}\\n")
+        content += text_smallest(f"{access_key}\n")
     if qr_number:
-        content += text_small(f"QR Code: {qr_number}\\n")
-    content += text_small("CONSUMIDOR NAO IDENTIFICADO\\n\\n")
+        content += text_smallest(f"QR Code: {qr_number}\n")
+    content += text_smallest("CONSUMIDOR NAO IDENTIFICADO\n\n")
 
-    content += text_small(
-        f"NFC-e n {nfce_number} Serie {nfce_series} data emissao {date_time}\\n"
+    content += text_smallest(
+        f"NFC-e n {nfce_number} Serie {nfce_series} data emissao {date_time}\n"
     )
-    content += text_small(f"Protocolo de Autorizacao: {protocol}\\n")
+    content += text_smallest(f"Protocolo de Autorizacao: {protocol}\n")
     if protocol_datetime:
-        content += text_small(f"Data Autorizacao {protocol_datetime}\\n")
+        content += text_smallest(f"Data Autorizacao {protocol_datetime}\n")
 
-    content += text_small("\\n[ QR CODE ]\\n")
+    content += align_center()
+
+    # Gera QR CODE a partir da chave de acesso se existir
+    if access_key:
+        content += escpos_qr(access_key)
+    elif qr_url:
+        content += escpos_qr(qr_url)
 
     if total_taxes:
-        content += text_small(
-            f"Tributos Totais Incidentes (Lei Federal 12.741/2012): {total_taxes}\\n"
+        content += text_smallest(
+            f"Tributos Totais Incidentes (Lei Federal 12.741/2012): {total_taxes}\n"
         )
     if md5_hash:
-        content += text_small(f"MD5: {md5_hash}\\n")
+        content += text_smallest(f"MD5: {md5_hash}\n")
+
+    # umas linhas em branco no final antes do corte
+    content += b"\n\n\n\n"
 
     return {
         "title": f"conta_{order_id}_mesa_{table_number}",
@@ -141,43 +153,105 @@ def build_bill_payload(order_data):
 
 def build_logo() -> Optional[bytes]:
     """
-    Gera bytes ESC/POS de uma imagem (logo) se BILL_LOGO_PATH estiver definido.
-    Redimensiona para largura máxima em pontos (default 384) e modo 1-bit.
+    Gera bytes ESC/POS do logo e registra logs de diagnóstico.
     """
     logo_path = os.getenv("BILL_LOGO_PATH")
+
+    print("\n[LOGO] Iniciando carregamento do logo...")
+
     if not logo_path:
+        print("[LOGO] Variável BILL_LOGO_PATH não definida.")
         return None
+
+    print(f"[LOGO] Caminho informado: {logo_path}")
+
+    if not os.path.exists(logo_path):
+        print("[LOGO] ARQUIVO NÃO ENCONTRADO! Verifique o caminho.")
+        return None
+
     max_width = int(os.getenv("BILL_LOGO_MAX_WIDTH_DOTS", "384"))
+    print(f"[LOGO] Largura máxima definida: {max_width} dots")
 
     try:
         from PIL import Image
     except Exception:
+        print("[LOGO] ERRO: Biblioteca Pillow não instalada.")
         return None
 
     try:
         img = Image.open(logo_path)
+        print(f"[LOGO] Imagem carregada com sucesso: {img.size} px")
+
+        # Converter para escala cinza
         img = img.convert("L")
-        # Reduzir à largura máxima mantendo proporção
+
+        # Redimensionar
         if img.width > max_width:
             ratio = max_width / float(img.width)
-            img = img.resize((max_width, int(img.height * ratio)))
-        # largura múltipla de 8 para ESC/POS
+            new_height = int(img.height * ratio)
+            print(f"[LOGO] Redimensionando imagem para: {max_width}x{new_height}")
+            img = img.resize((max_width, new_height))
+
+        # Ajustar largura para múltiplo de 8
         width = (img.width + 7) // 8 * 8
         if width != img.width:
-            img = img.resize((width, img.height))
-        img = img.convert("1")  # binário
+            print(f"[LOGO] Ajustando largura para múltiplo de 8: {width}")
+            img = img.resize((width, int(img.height)))
 
+        # Converter para 1-bit
+        img = img.convert("1")
+        print(f"[LOGO] Dimensão final do logo: {img.size}")
+
+        # ESC/POS: raster bit image (GS v 0)
         row_bytes = width // 8
         xL = row_bytes % 256
         xH = row_bytes // 256
         yL = img.height % 256
         yH = img.height // 256
 
-        # Comando raster bit image (GS v 0)
+        print("[LOGO] Gerando header ESC/POS raster...")
         header = b"\x1D\x76\x30\x00" + bytes([xL, xH, yL, yH])
-        return header + img.tobytes()
-    except Exception:
+
+        data = img.tobytes()
+        print(f"[LOGO] Bytes de imagem gerados: {len(data)} bytes")
+
+        print("[LOGO] LOGO preparado com sucesso!\n")
+        return header + data + b"\n"  # ← importante para TM-T20X
+
+    except Exception as e:
+        print(f"[LOGO] ERRO AO PROCESSAR IMAGEM: {e}\n")
         return None
+
+
+def escpos_qr(data: str) -> bytes:
+    """
+    Gera um QR Code real usando comandos ESC/POS nativos Epson.
+    Compatível com TM-T20X.
+    """
+
+    qr_bytes = data.encode("utf-8")
+    length = len(qr_bytes)
+
+    cmd = b""
+
+    # Seleciona modelo
+    cmd += b"\x1D\x28\x6B\x04\x00\x31\x41\x32\x00"
+
+    # Tamanho do módulo (1 a 16)
+    cmd += b"\x1D\x28\x6B\x03\x00\x31\x43\x06"  # módulo = 6
+
+    # Nível de correção (48=L, 49=M, 50=Q, 51=H)
+    cmd += b"\x1D\x28\x6B\x03\x00\x31\x45\x31"  # M
+
+    # Armazena dados
+    pL = (length + 3) % 256
+    pH = (length + 3) // 256
+    cmd += bytes([0x1D, 0x28, 0x6B, pL, pH, 0x31, 0x50, 0x30]) + qr_bytes
+
+    # Imprime o QR
+    cmd += b"\x1D\x28\x6B\x03\x00\x31\x51\x30"
+
+    return cmd + b"\n"
 
 
 def render_items(order_dishes: List[Dict[str, Any]]) -> bytes:
@@ -188,43 +262,53 @@ def render_items(order_dishes: List[Dict[str, Any]]) -> bytes:
         amount = order_dish.get("amount", 0)
         unit_price = order_dish.get("unit_price") or dish.get("price") or 0
         line_total = float(amount) * float(unit_price)
+
         left = f"{dish_name} / {amount} UN x R$ {float(unit_price):0.2f}"
-        # Ensure separation; not perfect alignment but keeps total at line end
-        buffer += text_medium(f"{left}    R$ {line_total:0.2f}\\n")
+        # quebra de linha normal no final
+        buffer += text_small(f"{left}    R$ {line_total:0.2f}\n")
+
     return buffer
 
 
 def reset_and_center():
-    return b"\x1B\x40" + align_center()
+    return b"\x1B\x40" + align_center()  # ESC @ (reset) + centralizar
 
 
 def align_left():
-    return b"\x1B\x61\x00"
+    return b"\x1B\x61\x00"  # ESC a 0
 
 
 def align_center():
-    return b"\x1B\x61\x01"
+    return b"\x1B\x61\x01"  # ESC a 1
 
 
-def text_small(text):
-    return align_current_size(b"\x1B\x21\x00", text)
+def text_smallest(text: str) -> bytes:
+    # modo normal
+    return b"\x1B\x4D\x01" + format_text(text, "").encode("utf-8") + b"\x1B\x4D\x00"
+
+def text_small(text: str) -> bytes:
+    # modo normal
+    return align_current_size(b"\x1B\x4D\x00", text)
 
 
-def text_medium(text):
+def text_medium(text: str) -> bytes:
+    # altura dobrada
     return align_current_size(b"\x1B\x21\x20", text)
 
 
-def text_big(text):
+def text_big(text: str) -> bytes:
+    # altura + largura dobradas
     return align_current_size(b"\x1B\x21\x30", text)
 
 
-def align_current_size(size_cmd, text):
+def align_current_size(size_cmd: bytes, text: str) -> bytes:
+    """
+    Aplica o comando de tamanho e retorna o texto formatado com \n corretos.
+    """
     return size_cmd + format_text(text, "").encode("utf-8")
 
-# Exemplo de uso:
-# texto_big = formatar_texto("Este é um texto de exemplo para testar a formatação.", 'big')
-# texto_medium = formatar_texto("Este é um texto de exemplo para testar a formatação.", 'medium')
-# texto_small = formatar_texto("Este é um texto de exemplo para testar a formatação.", 'small')
 
-def format_text(text, other):
-        return unidecode(text)
+def format_text(text: str, other: str) -> str:
+    # mantém quebras de linha e remove acentos
+    # (unidecode não remove '\n', então é safe)
+    return unidecode(text)
