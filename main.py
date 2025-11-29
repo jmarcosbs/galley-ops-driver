@@ -30,6 +30,30 @@ class Order(BaseModel):
     is_outside: bool = False
 
 
+class BillDish(OrderDish):
+    unit_price: float = Field(..., ge=0.0, description="Unit price of the dish")
+
+
+class BillOrder(Order):
+    order_dishes: List[BillDish]
+    total: float = Field(..., ge=0.0, description="Subtotal do pedido")
+    service: float = Field(0.0, ge=0.0, description="Valor do servico")
+    amount_to_pay: float = Field(..., ge=0.0, description="Total a pagar")
+    company_name: str = Field("", description="Razao social")
+    company_address: str = Field("", description="Endereco completo")
+    company_cnpj: str = Field("", description="CNPJ")
+    company_ie: str = Field("", description="Inscricao estadual")
+    access_key: str = Field("", description="Chave de acesso NFC-e")
+    qr_number: str = Field("", description="Numero do QR code")
+    qr_url: str = Field("https://sat.ef.sc.gov.br/nfce/consulta", description="URL de consulta NFC-e")
+    nfce_number: str = Field("", description="Numero da NFC-e")
+    nfce_series: str = Field("", description="Serie da NFC-e")
+    protocol: str = Field("", description="Protocolo de autorizacao")
+    protocol_datetime: str = Field("", description="Data/hora autorizacao")
+    total_taxes: str = Field("", description="Total de tributos")
+    md5: str = Field("", description="Hash MD5")
+
+
 app = FastAPI(title="Printer API", version="1.0.0")
 
 
@@ -44,7 +68,7 @@ def _handle_print_error(exc: Exception) -> None:
 @app.post("/print-bar", status_code=202)
 async def print_bar_endpoint(order: Order):
     try:
-        print_bar.print_order_bar(order.model_dump())
+        print_bar.print_order_all(order.model_dump())
     except Exception as exc:
         _handle_print_error(exc)
     return {"message": "Sent to bar printer"}
@@ -60,12 +84,12 @@ async def print_kitchen_endpoint(order: Order):
 
 
 @app.post("/print-bill", status_code=202)
-async def print_bar_endpoint(order: Order):
+async def print_bill_endpoint(order: BillOrder):
     try:
         print_bill.print_order_bill(order.model_dump())
     except Exception as exc:
         _handle_print_error(exc)
-    return {"message": "Sent to bar printer"}
+    return {"message": "Bill sent to bill printer"}
 
 
 @app.get("/health")

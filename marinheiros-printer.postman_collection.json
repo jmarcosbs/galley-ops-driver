@@ -71,6 +71,33 @@
         }
       },
       "response": []
+    },
+    {
+      "name": "Print Bill",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id\": 3,\n  \"date_time\": \"2024-06-14T20:00:00.000Z\",\n  \"table_number\": 8,\n  \"order_dishes\": [\n    {\n      \"dish\": {\"dish_name\": \"Cerveja\", \"department\": \"copa\", \"price\": 9.5},\n      \"amount\": 2,\n      \"dish_note\": null,\n      \"unit_price\": 9.5\n    },\n    {\n      \"dish\": {\"dish_name\": \"Hamburguer\", \"department\": \"cozinha\", \"price\": 28},\n      \"amount\": 1,\n      \"dish_note\": \"bem passado\",\n      \"unit_price\": 28\n    }\n  ],\n  \"order_note\": \"\",\n  \"waiter\": \"Joao\",\n  \"is_outside\": false,\n  \"total\": 47,\n  \"service\": 4.7,\n  \"amount_to_pay\": 51.7,\n  \"company_name\": \"Restaurante Exemplo LTDA\",\n  \"company_address\": \"Rua das Flores, 123 - Centro - Cidade/UF\",\n  \"company_cnpj\": \"00.000.000/0001-00\",\n  \"company_ie\": \"123456789\",\n  \"access_key\": \"00000000000000000000000000000000000000000000\",\n  \"qr_number\": \"1234567890\",\n  \"qr_url\": \"https://sat.ef.sc.gov.br/nfce/consulta\",\n  \"nfce_number\": \"118\",\n  \"nfce_series\": \"1\",\n  \"protocol\": \"242251682270691\",\n  \"protocol_datetime\": \"2024-06-14 20:00:00\",\n  \"total_taxes\": \"R$ 3,50\",\n  \"md5\": \"abc123...\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/print-bill",
+          "host": ["{{base_url}}"],
+          "path": ["print-bill"]
+        }
+      },
+      "response": []
     }
   ],
   "event": [],

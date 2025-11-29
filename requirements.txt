@@ -5,3 +5,4 @@ djangorestframework
 python-dotenv
 pywin32
 unidecode
+Pillow
