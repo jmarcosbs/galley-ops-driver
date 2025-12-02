@@ -53,7 +53,7 @@ def print_order_kitchen(order_data):
         
         for order_dish in order_dishes:
             dish = order_dish['dish']
-            if dish['department'] == 'cozinha':
+            if dish['department'] == 'kitchen':
                 hasKitchenOrder = True
         
         if hasKitchenOrder:   
@@ -137,7 +137,7 @@ def imprimir_cozinha(hPrinter, order_dishes):
         dish = order_dish['dish']
         amount = order_dish['amount']
         dish_note = order_dish['dish_note']
-        if dish['department'] == 'cozinha':
+        if dish['department'] == 'kitchen':
             # Enviar o comando para cada dish da cozinha
             dish_name = dish['dish_name']
             win32print.WritePrinter(hPrinter, dishes_pedido(dish_name, amount, dish_note))

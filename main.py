@@ -25,9 +25,9 @@ class Order(BaseModel):
     date_time: str = Field(..., description="ISO 8601 timestamp, e.g. 2024-06-14T18:30:00.000Z")
     table_number: int
     order_dishes: List[OrderDish]
-    order_note: str = ""
+    order_note: Optional[str] = ""
     waiter: str
-    is_outside: bool = False
+    is_outside: Optional[bool] = False
 
 
 class BillDish(OrderDish):
@@ -68,7 +68,7 @@ def _handle_print_error(exc: Exception) -> None:
 @app.post("/print-bar", status_code=202)
 async def print_bar_endpoint(order: Order):
     try:
-        print_bar.print_order_all(order.model_dump())
+        print_bar.print_order_bar(order.model_dump())
     except Exception as exc:
         _handle_print_error(exc)
     return {"message": "Sent to bar printer"}
@@ -77,6 +77,9 @@ async def print_bar_endpoint(order: Order):
 @app.post("/print-kitchen", status_code=202)
 async def print_kitchen_endpoint(order: Order):
     try:
+        # Printa o body
+        print("📥 Recebido em /print-kitchen:")
+        print(order.model_dump())
         print_kitchen.print_order_kitchen(order.model_dump())
     except Exception as exc:
         _handle_print_error(exc)

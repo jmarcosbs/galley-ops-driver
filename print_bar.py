@@ -50,7 +50,7 @@ def print_order_bar(order_data):
         win32print.StartPagePrinter(hPrinter)
         
         has_bar_order = any(
-            order_dish.get('dish', {}).get('department') == 'copa'
+            order_dish.get('dish', {}).get('department') == 'bar'
             for order_dish in order_dishes
         )
 
@@ -128,7 +128,7 @@ def imprimir_copa(hPrinter, order_dishes):
         dish = order_dish['dish']
         amount = order_dish['amount']
         dish_note = order_dish['dish_note']
-        if dish['department'] == 'copa':
+        if dish['department'] == 'bar':
             dish_name = dish['dish_name']
             win32print.WritePrinter(hPrinter, dishes_pedido(dish_name, amount, dish_note))
 
