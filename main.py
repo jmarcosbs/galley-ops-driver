@@ -68,6 +68,9 @@ def _handle_print_error(exc: Exception) -> None:
 @app.post("/print-bar", status_code=202)
 async def print_bar_endpoint(order: Order):
     try:
+        # Printa o body
+        print("📥 Recebido em /print-bar:")
+        print(order.model_dump())
         print_bar.print_order_bar(order.model_dump())
     except Exception as exc:
         _handle_print_error(exc)
@@ -89,6 +92,9 @@ async def print_kitchen_endpoint(order: Order):
 @app.post("/print-bill", status_code=202)
 async def print_bill_endpoint(order: BillOrder):
     try:
+        # Printa o body
+        print("📥 Recebido em /print-bill:")
+        print(order.model_dump())
         print_bill.print_order_bill(order.model_dump())
     except Exception as exc:
         _handle_print_error(exc)
