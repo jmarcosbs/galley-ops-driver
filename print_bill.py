@@ -79,83 +79,83 @@ def print_order_bill(order_data):
 
 
 def build_bill_payload(order_data):
-    order_id = order_data["id"]
-    original_date_time = order_data["date_time"]
-    date_object = datetime.fromisoformat(original_date_time[:-2] + "00")
-    date_time = date_object.strftime("%d-%m-%Y %H:%M:%S")
-
-    table_number = order_data["table_number"]
-    order_dishes = order_data.get("order_dishes", [])
-    waiter = order_data["waiter"]
-    is_outside = order_data["is_outside"]
-
-    subtotal = float(order_data.get("total", 0) or 0)
-    service_fee = float(order_data.get("service", 0) or 0)
-    amount_due = float(order_data.get("amount_to_pay", subtotal + service_fee) or 0)
-
     company_name = order_data.get("company_name", "")
     company_address = order_data.get("company_address", "")
     company_cnpj = order_data.get("company_cnpj", "")
     company_ie = order_data.get("company_ie", "")
+    order_dishes = order_data.get("order_dishes", [])
+    subtotal = float(order_data.get("subtotal", 0) or 0)
+    service_fee = float(order_data.get("service_fee", 0) or 0)
+    final_value = float(order_data.get("final_value", 0) or 0)
+    access_key_url = order_data.get("access_key_url", "")
     access_key = order_data.get("access_key", "")
-    qr_url = order_data.get("qr_url", "https://sat.ef.sc.gov.br/nfce/consulta")
+    qr_url = order_data.get("qr_url", "")
     nfce_number = order_data.get("nfce_number", "")
     nfce_series = order_data.get("nfce_series", "")
-    protocol = order_data.get("protocol", "")
-    protocol_datetime = order_data.get("protocol_datetime", "")
-    total_taxes = order_data.get("total_taxes", "")
-    md5_hash = order_data.get("md5", "")
+    emission_datetime = order_data.get("emission_datetime", "")
+    authorization_protocol = order_data.get("authorization_protocol", "")
+    authorization_datetime = order_data.get("authorization_datetime", "")
 
     content = b""
 
     # resetar impressora e centralizar
     content += reset_and_center()
-    # ⚠️ AGORA usando "\n" de verdade, não "\\n"
     content += text_smallest(company_name + "\n")
     content += text_smallest(company_address + "\n")
     content += text_smallest(f"CNPJ: {company_cnpj}  IE: {company_ie}\n")
     content += text_smallest("Documento Auxiliar da Nota Fiscal de Consumidor Eletronica\n\n")
 
+    content += b"\n"
+    
     content += align_left()
+    content += render_item_line(
+        "Item  |  Quantidade  |  Valor Unitario",
+        "Soma",
+        formatter=text_smallest,
+    )
     content += render_items(order_dishes)
     
     content += b"\n"
+    content += b"\n"
     
-    content += text_medium(f"Total: R$ {subtotal:0.2f}\n")
-    content += text_medium(f"Serviço: R$ {service_fee:0.2f}\n")
-    content += text_big(f"Valor a Pagar: R$ {amount_due:0.2f}\n")
+    content += render_item_line(
+        f"Subtotal: R$ {subtotal:0.2f}",
+        f"R$ {subtotal:0.2f}",
+        formatter=text_medium,
+    )
+    content += render_item_line(
+        f"Serviço: R$ {service_fee:0.2f}",
+        f"R$ {service_fee:0.2f}",
+        formatter=text_medium,
+    )
+    content += render_item_line(
+        f"Valor total: R$ {final_value:0.2f}",
+        f"R$ {final_value:0.2f}",
+        formatter=text_medium,
+    )
 
     content += align_center()
     content += text_smallest("\nConsulte pela chave de acesso em\n")
-    content += text_smallest(f"{qr_url}\n")
-    if access_key:
-        content += text_smallest(f"{access_key}\n")
+    content += text_smallest(f"{access_key_url}\n")
+    content += text_smallest(f"{access_key}\n")
     content += text_smallest("CONSUMIDOR NAO IDENTIFICADO\n\n")
 
     content += text_smallest(
-        f"NFC-e n {nfce_number} Serie {nfce_series} data emissao {date_time}\n"
+        f"NFC-e n {nfce_number} Serie {nfce_series} | Data Emissao: {emission_datetime}\n"
     )
-    content += text_smallest(f"Protocolo de Autorizacao: {protocol}\n")
-    if protocol_datetime:
-        content += text_smallest(f"Data Autorizacao {protocol_datetime}\n")
+    content += text_smallest(f"Protocolo de Autorizacao: {authorization_protocol}\n")
+    content += text_smallest(f"Data Autorizacao: {authorization_datetime}\n")
 
     content += align_center()
 
     # Gera QR CODE a partir da chave de acesso se existir
-    if access_key:
-        content += escpos_qr(access_key)
-    elif qr_url:
-        content += escpos_qr(qr_url)
-
-    if total_taxes:
-        content += text_smallest(
-            f"Tributos Totais Incidentes (Lei Federal 12.741/2012): {total_taxes}\n"
-        )
-    if md5_hash:
-        content += text_smallest(f"MD5: {md5_hash}\n")
-
+    content += escpos_qr(qr_url)
+    
     # umas linhas em branco no final antes do corte
     content += b"\n\n\n\n"
+
+    order_id = order_data.get("id", "sem_id")
+    table_number = order_data.get("table_number", "sem_mesa")
 
     return {
         "title": f"conta_{order_id}_mesa_{table_number}",
@@ -276,9 +276,8 @@ def render_items(order_dishes: List[Dict[str, Any]]) -> bytes:
         line_total = float(amount) * float(unit_price)
 
         left = f"{dish_name} - {amount} UN x R$ {float(unit_price):0.2f}"
-        # quebra de linha normal no final
         right = f"R$ {line_total:0.2f}"
-        buffer += render_item_line(left, right)
+        buffer += render_item_line(left, right, formatter=text_small)
 
     return buffer
 
@@ -336,7 +335,12 @@ def format_text(text: str, other: str) -> str:
     return unidecode(text)
 
 
-def render_item_line(left: str, right: str, width: int = 48) -> bytes:
+def render_item_line(
+    left: str,
+    right: str,
+    width: int = 48,
+    formatter=text_small,
+) -> bytes:
     """
     Monta uma linha com o texto da esquerda e o valor à direita.
     Exemplo:
@@ -352,4 +356,4 @@ def render_item_line(left: str, right: str, width: int = 48) -> bytes:
         spaces = 1  # evita colar textos quando ultrapassa
 
     line = left + (" " * spaces) + right + "\n"
-    return text_small(line)
+    return formatter(line)

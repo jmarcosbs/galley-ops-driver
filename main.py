@@ -35,23 +35,22 @@ class BillDish(OrderDish):
 
 
 class BillOrder(Order):
-    order_dishes: List[BillDish]
-    total: float = Field(..., ge=0.0, description="Subtotal do pedido")
-    service: float = Field(0.0, ge=0.0, description="Valor do servico")
-    amount_to_pay: float = Field(..., ge=0.0, description="Total a pagar")
     company_name: str = Field("", description="Razao social")
     company_address: str = Field("", description="Endereco completo")
     company_cnpj: str = Field("", description="CNPJ")
     company_ie: str = Field("", description="Inscricao estadual")
+    order_dishes: List[BillDish]
+    subtotal: float = Field(..., ge=0.0, description="Subtotal do pedido")
+    service_fee: float = Field(0.0, ge=0.0, description="Valor do servico")
+    final_value: float = Field(..., ge=0.0, description="Total a pagar")
+    access_key_url: str = Field("", description="URL de consulta Chave de acesso NFC-e")
     access_key: str = Field("", description="Chave de acesso NFC-e")
-    qr_number: str = Field("", description="Numero do QR code")
-    qr_url: str = Field("https://sat.ef.sc.gov.br/nfce/consulta", description="URL de consulta NFC-e")
-    nfce_number: str = Field("", description="Numero da NFC-e")
+    qr_url: str = Field("", description="URL de consulta NFC-e")
+    nfce_number: str = Field("", description="Número e Serie da NFC-e")
     nfce_series: str = Field("", description="Serie da NFC-e")
-    protocol: str = Field("", description="Protocolo de autorizacao")
-    protocol_datetime: str = Field("", description="Data/hora autorizacao")
-    total_taxes: str = Field("", description="Total de tributos")
-    md5: str = Field("", description="Hash MD5")
+    emission_datetime: str = Field("", description="Data/hora emissao")
+    authorization_protocol: str = Field("", description="Protocolo de autorizacao")
+    authorization_datetime: str = Field("", description="Data/hora autorizacao")
 
 
 app = FastAPI(title="Printer API", version="1.0.0")
