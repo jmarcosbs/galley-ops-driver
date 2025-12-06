@@ -37,32 +37,45 @@ def print_order_bill(order_data):
     if is_printer_offline_all():
         raise PrinterOfflineException()
 
+    hPrinter = None
+    doc_started = False
+    page_started = False
+
     try:
         payload = build_bill_payload(order_data)
 
         hPrinter = win32print.OpenPrinter(default_printer)
         win32print.StartDocPrinter(hPrinter, 1, (payload["title"], None, "RAW"))
+        doc_started = True
         win32print.StartPagePrinter(hPrinter)
+        page_started = True
 
-        # ---- LOGO (centralizado) ----
         logo_bytes = build_logo()
         if logo_bytes:
-            # centralizar imagem
             win32print.WritePrinter(hPrinter, align_center())
             win32print.WritePrinter(hPrinter, logo_bytes)
 
-        # ---- CONTEÚDO DA CONTA ----
         win32print.WritePrinter(hPrinter, payload["content"])
-
-        # comando de corte
         win32print.WritePrinter(hPrinter, CUT)
-
-        win32print.EndPagePrinter(hPrinter)
-        win32print.EndDocPrinter(hPrinter)
-        win32print.ClosePrinter(hPrinter)
 
     except Exception as e:
         raise APIException(f"Erro durante a impressão: {str(e)}")
+    finally:
+        if page_started and hPrinter:
+            try:
+                win32print.EndPagePrinter(hPrinter)
+            except Exception:
+                pass
+        if doc_started and hPrinter:
+            try:
+                win32print.EndDocPrinter(hPrinter)
+            except Exception:
+                pass
+        if hPrinter:
+            try:
+                win32print.ClosePrinter(hPrinter)
+            except Exception:
+                pass
 
 
 def build_bill_payload(order_data):

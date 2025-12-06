@@ -27,15 +27,17 @@ def is_printer_offline_kitchen():
         return True
 
 def print_order_kitchen(order_data):
-    
-    # Verifica se a impressora está online
     if is_printer_offline_kitchen():
-        raise PrinterOfflineException()  # Lança a exceção se a impressora estiver offline
+        raise PrinterOfflineException()
+
+    hPrinter = None
+    doc_started = False
+    page_started = False
 
     try:
         order_id = order_data['id']
         original_date_time = order_data['date_time']
-        date_object = datetime.fromisoformat(original_date_time[:-2] + "00")  # Remove o 'Z' no final
+        date_object = datetime.fromisoformat(original_date_time[:-2] + "00")
         date_time = date_object.strftime("%d-%m-%Y %H:%M:%S")
 
         table_number = order_data['table_number']
@@ -44,31 +46,46 @@ def print_order_kitchen(order_data):
         waiter = order_data['waiter']
         is_outside = order_data['is_outside']
 
-        # Iniciar o trabalho de impressão
         hPrinter = win32print.OpenPrinter(default_printer)
-        hJob = win32print.StartDocPrinter(hPrinter, 1, (f'pedido_{order_id}_mesa_{table_number}', None, "RAW"))
+        win32print.StartDocPrinter(
+            hPrinter, 1, (f'pedido_{order_id}_mesa_{table_number}', None, "RAW")
+        )
+        doc_started = True
         win32print.StartPagePrinter(hPrinter)
-        
-        hasKitchenOrder = False
-        
-        for order_dish in order_dishes:
-            dish = order_dish['dish']
-            if dish['department'] == 'kitchen':
-                hasKitchenOrder = True
-        
-        if hasKitchenOrder:   
-            win32print.WritePrinter(hPrinter, cabecalho_pedido(order_id, date_time, waiter, "Cozinha"))
-            imprimir_cozinha(hPrinter, order_dishes)
-            win32print.WritePrinter(hPrinter, rodape_pedido(order_note, table_number, is_outside))
+        page_started = True
 
-        # Finalizar o trabalho de impressão
-        win32print.EndPagePrinter(hPrinter)
-        win32print.EndDocPrinter(hPrinter)
-        win32print.ClosePrinter(hPrinter)
+        hasKitchenOrder = any(
+            order_dish.get('dish', {}).get('department') == 'kitchen'
+            for order_dish in order_dishes
+        )
+
+        if hasKitchenOrder:
+            win32print.WritePrinter(
+                hPrinter, cabecalho_pedido(order_id, date_time, waiter, "Cozinha")
+            )
+            imprimir_cozinha(hPrinter, order_dishes)
+            win32print.WritePrinter(
+                hPrinter, rodape_pedido(order_note, table_number, is_outside)
+            )
 
     except Exception as e:
-        # Lança uma exceção para qualquer erro inesperado
         raise APIException(f"Erro durante a impressão: {str(e)}")
+    finally:
+        if page_started and hPrinter:
+            try:
+                win32print.EndPagePrinter(hPrinter)
+            except Exception:
+                pass
+        if doc_started and hPrinter:
+            try:
+                win32print.EndDocPrinter(hPrinter)
+            except Exception:
+                pass
+        if hPrinter:
+            try:
+                win32print.ClosePrinter(hPrinter)
+            except Exception:
+                pass
 
 def cabecalho_pedido(order_id, data_time, waiter, titulo):
     comandos = (
@@ -149,4 +166,3 @@ def imprimir_cozinha(hPrinter, order_dishes):
 
 def format_text(text, other):
         return unidecode(text)
-

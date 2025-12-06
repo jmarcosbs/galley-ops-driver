@@ -27,15 +27,17 @@ def is_printer_offline_all():
         return True
 
 def print_order_bar(order_data):
-    
-    # Verifica se a impressora está online
     if is_printer_offline_all():
-        raise PrinterOfflineException()  # Lança a exceção se a impressora estiver offline
+        raise PrinterOfflineException()
+
+    hPrinter = None
+    doc_started = False
+    page_started = False
 
     try:
         order_id = order_data['id']
         original_date_time = order_data['date_time']
-        date_object = datetime.fromisoformat(original_date_time[:-2] + "00")  # Remove o 'Z' no final
+        date_object = datetime.fromisoformat(original_date_time[:-2] + "00")
         date_time = date_object.strftime("%d-%m-%Y %H:%M:%S")
 
         table_number = order_data['table_number']
@@ -44,30 +46,47 @@ def print_order_bar(order_data):
         waiter = order_data['waiter']
         is_outside = order_data['is_outside']
 
-        # Iniciar o trabalho de impressão
         hPrinter = win32print.OpenPrinter(default_printer)
-        hJob = win32print.StartDocPrinter(hPrinter, 1, (f'pedido_{order_id}_mesa_{table_number}', None, "RAW"))
+        win32print.StartDocPrinter(
+            hPrinter, 1, (f'pedido_{order_id}_mesa_{table_number}', None, "RAW")
+        )
+        doc_started = True
         win32print.StartPagePrinter(hPrinter)
-        
+        page_started = True
+
         has_bar_order = any(
             order_dish.get('dish', {}).get('department') == 'bar'
             for order_dish in order_dishes
         )
 
-        # Enviar os comandos para a impressora apenas se houver itens da copa
         if has_bar_order:
-            win32print.WritePrinter(hPrinter, cabecalho_pedido(order_id, date_time, waiter, "Copa"))
+            win32print.WritePrinter(
+                hPrinter, cabecalho_pedido(order_id, date_time, waiter, "Copa")
+            )
             imprimir_copa(hPrinter, order_dishes)
-            win32print.WritePrinter(hPrinter, rodape_pedido(order_note, table_number, is_outside))
-
-        # Finalizar o trabalho de impressão
-        win32print.EndPagePrinter(hPrinter)
-        win32print.EndDocPrinter(hPrinter)
-        win32print.ClosePrinter(hPrinter)
+            win32print.WritePrinter(
+                hPrinter, rodape_pedido(order_note, table_number, is_outside)
+            )
 
     except Exception as e:
-        # Lança uma exceção para qualquer erro inesperado
         raise APIException(f"Erro durante a impressão: {str(e)}")
+    finally:
+        # Garante que os handles sejam fechados mesmo em caso de falha, evitando travar a fila da impressora
+        if page_started and hPrinter:
+            try:
+                win32print.EndPagePrinter(hPrinter)
+            except Exception:
+                pass
+        if doc_started and hPrinter:
+            try:
+                win32print.EndDocPrinter(hPrinter)
+            except Exception:
+                pass
+        if hPrinter:
+            try:
+                win32print.ClosePrinter(hPrinter)
+            except Exception:
+                pass
 
 def cabecalho_pedido(order_id, data_time, waiter, titulo):
     comandos = (
