@@ -52,14 +52,14 @@ def print_order_bill(order_data):
         win32print.StartPagePrinter(hPrinter)
         page_started = True
 
-        # logo_bytes = build_logo()
-        # if logo_bytes:
-        #     win32print.WritePrinter(hPrinter, align_center())
-        #     win32print.WritePrinter(hPrinter, logo_bytes)
+        logo_bytes = build_logo()
+        if logo_bytes:
+            win32print.WritePrinter(hPrinter, align_center())
+            win32print.WritePrinter(hPrinter, logo_bytes)
 
-        # win32print.WritePrinter(hPrinter, payload["content"])
-        # win32print.WritePrinter(hPrinter, CUT)
-        emitir_beep(hPrinter)
+        win32print.WritePrinter(hPrinter, payload["content"])
+        win32print.WritePrinter(hPrinter, CUT)
+        # emitir_beep(hPrinter)
 
     except Exception as e:
         raise APIException(f"Erro durante a impressão: {str(e)}")
@@ -122,17 +122,17 @@ def build_bill_payload(order_data):
     content += b"\n"
     
     content += render_item_line(
-        f"Subtotal: R$ {subtotal:0.2f}",
+        "Subtotal:",
         f"R$ {subtotal:0.2f}",
-        formatter=text_medium,
+        formatter=text_small,
     )
     content += render_item_line(
-        f"Serviço: R$ {service_fee:0.2f}",
+        "Serviço:",
         f"R$ {service_fee:0.2f}",
-        formatter=text_medium,
+        formatter=text_small,
     )
     content += render_item_line(
-        f"Valor total: R$ {final_value:0.2f}",
+        "Valor total:",
         f"R$ {final_value:0.2f}",
         formatter=text_medium,
     )
@@ -184,7 +184,7 @@ def build_logo() -> Optional[bytes]:
         print("[LOGO] ARQUIVO NÃO ENCONTRADO! Verifique o caminho.")
         return None
 
-    max_width = int(os.getenv("BILL_LOGO_MAX_WIDTH_DOTS", "384"))
+    max_width = int(os.getenv("BILL_LOGO_MAX_WIDTH_DOTS", "256"))
     print(f"[LOGO] Largura máxima definida: {max_width} dots")
 
     try:
@@ -337,21 +337,21 @@ def format_text(text: str, other: str) -> str:
     # (unidecode não remove '\n', então é safe)
     return unidecode(text)
 
-def emitir_beep(hPrinter, times=BEEP_TIMES, duration=BEEP_DURATION):
-    """
-    Dispara o comando de buzzer via ESC/POS usando ESC ( A.
-    times e duration devem estar entre 1 e 9.
-    """
-    # garante intervalo válido
-    times = max(1, min(9, int(times)))
-    duration = max(1, min(9, int(duration)))
+# def emitir_beep(hPrinter, times=BEEP_TIMES, duration=BEEP_DURATION):
+#     """
+#     Dispara o comando de buzzer via ESC/POS usando ESC ( A.
+#     times e duration devem estar entre 1 e 9.
+#     """
+#     # garante intervalo válido
+#     times = max(1, min(9, int(times)))
+#     duration = max(1, min(9, int(duration)))
 
-    # Comando ESC/POS para beep:
-    # 1B 28 41 03 00 30 <times> <duration>
-    comando = b'\x1B\x28\x41\x03\x00\x30' + bytes([times, duration])
+#     # Comando ESC/POS para beep:
+#     # 1B 28 41 03 00 30 <times> <duration>
+#     comando = b'\x1B\x28\x41\x03\x00\x30' + bytes([times, duration])
 
-    # envia "raw" para impressora
-    win32print.WritePrinter(hPrinter, comando)
+#     # envia "raw" para impressora
+#     win32print.WritePrinter(hPrinter, comando)
 
 
 

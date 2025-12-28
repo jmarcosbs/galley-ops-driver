@@ -63,14 +63,14 @@ def print_order_bar(order_data):
         )
 
         if has_bar_order:
-            # win32print.WritePrinter(
-            #     hPrinter, cabecalho_pedido(order_id, date_time, waiter, "Copa")
-            # )
-            # imprimir_copa(hPrinter, order_dishes)
-            # win32print.WritePrinter(
-            #     hPrinter, rodape_pedido(order_note, table_number, is_outside)
-            # )
-            emitir_beep(hPrinter)
+            win32print.WritePrinter(
+                hPrinter, cabecalho_pedido(order_id, date_time, waiter, "Copa")
+            )
+            imprimir_copa(hPrinter, order_dishes)
+            win32print.WritePrinter(
+                hPrinter, rodape_pedido(order_note, table_number, is_outside)
+            )
+            # emitir_beep(hPrinter)
 
     except Exception as e:
         raise APIException(f"Erro durante a impressão: {str(e)}")
@@ -173,12 +173,12 @@ def imprimir_cozinha(hPrinter, order_dishes):
 def format_text(text, other):
         return unidecode(text)
 
-def emitir_beep(hPrinter, times=BEEP_TIMES, duration=BEEP_DURATION):
-    """
-    Dispara o buzzer interno com ESC B <vezes> <duração>.
-    Times e duration aceitam valores entre 1 e 9 no protocolo ESC/POS.
-    """
-    times = max(1, min(9, int(times)))
-    duration = max(1, min(9, int(duration)))
-    comando = b'\x1B\x42' + bytes([times, duration])
-    win32print.WritePrinter(hPrinter, comando)
+# def emitir_beep(hPrinter, times=BEEP_TIMES, duration=BEEP_DURATION):
+#     """
+#     Dispara o buzzer interno com ESC B <vezes> <duração>.
+#     Times e duration aceitam valores entre 1 e 9 no protocolo ESC/POS.
+#     """
+#     times = max(1, min(9, int(times)))
+#     duration = max(1, min(9, int(duration)))
+#     comando = b'\x1B\x42' + bytes([times, duration])
+#     win32print.WritePrinter(hPrinter, comando)
