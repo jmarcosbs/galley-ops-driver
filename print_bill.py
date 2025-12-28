@@ -11,6 +11,8 @@ load_dotenv()
 default_printer = os.getenv('BILL_PRINTER')
 
 CUT = b"\x1B\x69"  # corte total Epson ESC/POS
+BEEP_TIMES = 1
+BEEP_DURATION = 3
 
 
 class PrinterOfflineException(APIException):
@@ -50,13 +52,14 @@ def print_order_bill(order_data):
         win32print.StartPagePrinter(hPrinter)
         page_started = True
 
-        logo_bytes = build_logo()
-        if logo_bytes:
-            win32print.WritePrinter(hPrinter, align_center())
-            win32print.WritePrinter(hPrinter, logo_bytes)
+        # logo_bytes = build_logo()
+        # if logo_bytes:
+        #     win32print.WritePrinter(hPrinter, align_center())
+        #     win32print.WritePrinter(hPrinter, logo_bytes)
 
-        win32print.WritePrinter(hPrinter, payload["content"])
-        win32print.WritePrinter(hPrinter, CUT)
+        # win32print.WritePrinter(hPrinter, payload["content"])
+        # win32print.WritePrinter(hPrinter, CUT)
+        emitir_beep(hPrinter)
 
     except Exception as e:
         raise APIException(f"Erro durante a impressão: {str(e)}")
@@ -333,6 +336,15 @@ def format_text(text: str, other: str) -> str:
     # mantém quebras de linha e remove acentos
     # (unidecode não remove '\n', então é safe)
     return unidecode(text)
+
+def emitir_beep(hPrinter, times=BEEP_TIMES, duration=BEEP_DURATION):
+    """
+    Dispara o comando ESC B para usar o buzzer interno.
+    """
+    times = max(1, min(9, int(times)))
+    duration = max(1, min(9, int(duration)))
+    comando = b'\x1B\x42' + bytes([times, duration])
+    win32print.WritePrinter(hPrinter, comando)
 
 
 def render_item_line(
