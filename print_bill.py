@@ -339,12 +339,20 @@ def format_text(text: str, other: str) -> str:
 
 def emitir_beep(hPrinter, times=BEEP_TIMES, duration=BEEP_DURATION):
     """
-    Dispara o comando ESC B para usar o buzzer interno.
+    Dispara o comando de buzzer via ESC/POS usando ESC ( A.
+    times e duration devem estar entre 1 e 9.
     """
+    # garante intervalo válido
     times = max(1, min(9, int(times)))
     duration = max(1, min(9, int(duration)))
-    comando = b'\x1B\x42' + bytes([times, duration])
+
+    # Comando ESC/POS para beep:
+    # 1B 28 41 03 00 30 <times> <duration>
+    comando = b'\x1B\x28\x41\x03\x00\x30' + bytes([times, duration])
+
+    # envia "raw" para impressora
     win32print.WritePrinter(hPrinter, comando)
+
 
 
 def render_item_line(
