@@ -7,6 +7,7 @@ from rest_framework.exceptions import APIException
 import print_bar
 import print_kitchen
 import print_bill
+import print_dashboard
 
 
 class Dish(BaseModel):
@@ -51,6 +52,14 @@ class BillOrder(Order):
     emission_datetime: str = Field("", description="Data/hora emissao")
     authorization_protocol: str = Field("", description="Protocolo de autorizacao")
     authorization_datetime: str = Field("", description="Data/hora autorizacao")
+
+
+class DashboardSummaryPayload(BaseModel):
+    start_date: str
+    end_date: str
+    total_additions: float
+    total_tables: int
+    printed_at: Optional[str] = None
 
 
 app = FastAPI(title="Printer API", version="1.0.0")
@@ -98,6 +107,17 @@ async def print_bill_endpoint(order: BillOrder):
     except Exception as exc:
         _handle_print_error(exc)
     return {"message": "Bill sent to bill printer"}
+
+
+@app.post("/print-dashboard-service-fee", status_code=202)
+async def print_dashboard_service_fee(payload: DashboardSummaryPayload):
+    try:
+        print("📥 Recebido em /print-dashboard-service-fee:")
+        print(payload.model_dump())
+        print_dashboard.print_dashboard_summary(payload.model_dump())
+    except Exception as exc:
+        _handle_print_error(exc)
+    return {"message": "Dashboard summary sent to printer"}
 
 
 @app.get("/health")
