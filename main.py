@@ -54,12 +54,20 @@ class BillOrder(Order):
     authorization_datetime: str = Field("", description="Data/hora autorizacao")
 
 
+class DashboardDailyEntry(BaseModel):
+    date: Optional[str] = None
+    total_additions: float
+    total_tables: int
+
+
 class DashboardSummaryPayload(BaseModel):
     start_date: str
     end_date: str
     total_additions: float
     total_tables: int
     printed_at: Optional[str] = None
+    daily_breakdown: Optional[List[DashboardDailyEntry]] = None
+    printed_by: Optional[str] = None
 
 
 app = FastAPI(title="Printer API", version="1.0.0")

@@ -10,6 +10,15 @@ load_dotenv()
 
 REPORT_PRINTER = os.getenv("REPORT_PRINTER") or os.getenv("BILL_PRINTER")
 CUT = b"\x1B\x69"
+WEEKDAY_LABELS = [
+    "Segunda-feira",
+    "Terca-feira",
+    "Quarta-feira",
+    "Quinta-feira",
+    "Sexta-feira",
+    "Sabado",
+    "Domingo",
+]
 
 
 class PrinterOfflineException(APIException):
@@ -92,30 +101,84 @@ def build_summary_payload(report_data) -> bytes:
         report_data.get("end_date") or report_data.get("start_date")
     )
     total_additions = float(report_data.get("total_additions") or 0)
-    total_tables = int(report_data.get("total_tables") or 0)
     printed_at = format_datetime_label(report_data.get("printed_at"))
+    printed_by = str(report_data.get("printed_by") or "").strip()
+    daily_entries = normalize_daily_breakdown(report_data)
 
     if not end_label:
         end_label = start_label
 
     if start_label == end_label:
-        period_line = f"Periodo: {start_label}"
+        period_line = f"Periodo: {start_label or '--'}"
     else:
         period_line = f"Periodo: {start_label} a {end_label}"
 
     content = b""
     content += reset_printer()
     content += align_center()
-    content += text_big("Relatorio dos 10%\n")
+    content += text_big("Relatório de serviço\n")
     content += text_small("\n")
     content += align_left()
     content += text_medium(period_line + "\n")
-    content += text_small(f"Mesas atendidas: {total_tables}\n")
-    content += text_medium(f"Total dos 10%: R$ {total_additions:0.2f}\n")
     if printed_at:
-        content += text_small(f"Impresso em: {printed_at}\n")
-    content += b"\n\n"
+        content += text_small(f"Gerado em: {printed_at}\n")
+    if printed_by:
+        content += text_small(f"Por: {printed_by}\n")
+    content += text_small("\n")
+
+    if not daily_entries:
+        content += text_medium("Sem movimentacao no periodo.\n")
+        content += text_small("\n")
+    else:
+        for entry in daily_entries:
+            weekday_label, day_month_label = format_weekday_day_label(entry.get("date"))
+            content += text_medium(
+                f"{weekday_label} {day_month_label}: R$ {entry['total_additions']:0.2f}\n"
+            )
+            content += text_small(f"Mesas atendidas: {entry['total_tables']}\n\n")
+
+    content += text_medium(f"Total dos 10% no periodo: R$ {total_additions:0.2f}\n")
+    content += b"\n"
     return content
+
+
+def format_weekday_day_label(value):
+    parsed = parse_iso_date(value)
+    if not parsed:
+        return "--", "--/--"
+    weekday_label = WEEKDAY_LABELS[parsed.weekday()]
+    day_month_label = parsed.strftime("%d/%m")
+    return weekday_label, day_month_label
+
+
+def parse_iso_date(value):
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(str(value))
+    except ValueError:
+        return None
+
+
+def normalize_daily_breakdown(report_data):
+    breakdown = report_data.get("daily_breakdown")
+    if not isinstance(breakdown, list):
+        return []
+
+    normalized = []
+    for entry in breakdown:
+        if not isinstance(entry, dict):
+            continue
+        normalized.append(
+            {
+                "date": entry.get("date"),
+                "total_additions": float(entry.get("total_additions") or 0),
+                "total_tables": int(entry.get("total_tables") or 0),
+            }
+        )
+
+    normalized.sort(key=lambda item: item.get("date") or "")
+    return normalized
 
 
 def format_date_label(value):
