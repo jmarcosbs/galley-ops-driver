@@ -119,7 +119,7 @@ def build_summary_payload(report_data) -> bytes:
     content += text_big("Relatório de serviço\n")
     content += text_small("\n")
     content += align_left()
-    content += text_medium(period_line + "\n")
+    content += text_small(period_line + "\n")
     if printed_at:
         content += text_small(f"Gerado em: {printed_at}\n")
     if printed_by:
@@ -138,7 +138,7 @@ def build_summary_payload(report_data) -> bytes:
             content += text_small(f"Mesas atendidas: {entry['total_tables']}\n\n")
 
     content += text_medium(f"Total dos 10% no periodo: R$ {total_additions:0.2f}\n")
-    content += b"\n"
+    content += b"\n\n\n\n"
     return content
 
 
