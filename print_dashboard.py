@@ -137,7 +137,7 @@ def build_summary_payload(report_data) -> bytes:
             )
             content += text_small(f"Mesas atendidas: {entry['total_tables']}\n\n")
 
-    content += text_small(f"Total no periodo: R$ {total_additions:0.2f}\n")
+    content += text_big(f"Total no periodo: R$ {total_additions:0.2f}\n")
     content += b"\n\n\n\n"
     return content
 
