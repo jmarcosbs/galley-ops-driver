@@ -4,8 +4,12 @@ __pycache__/
 *.pyo
 *.pyd
 
-# Virtual envs
+# Environment
 .env
+.env.*
+!.env.example
+
+# Virtual envs
 .venv
 venv/
 ENV/
@@ -17,6 +21,16 @@ ENV/
 # OS
 .DS_Store
 Thumbs.db
+
+
+# Tooling cache & logs
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+.cache/
+*.log
 
 
 logo.png
