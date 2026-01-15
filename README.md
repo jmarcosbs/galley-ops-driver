@@ -1,4 +1,4 @@
-# Marinheiros Printer API
+# Galley Ops Driver API
 
 API simples para despachar impressao de comandas usando os fluxos existentes (`print_bar.py` e `print_kitchen.py`).
 
@@ -79,8 +79,8 @@ API simples para despachar impressao de comandas usando os fluxos existentes (`p
 }
 ```
 
-## Colecao Postman (Marinheiros)
-- Arquivo: `marinheiros-printer.postman_collection.json`.
+## Colecao Postman
+- Arquivo: `printer.postman_collection.json` (em `docs/`).
 - Configure a variavel `base_url` (default: `http://localhost:8000`).
 - Requests incluidos:
   - **Health** (`GET {{base_url}}/health`)
